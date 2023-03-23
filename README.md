@@ -19,6 +19,6 @@
 ### Installing
 
 - Prepare your `src/secrets.h` file
-  - Execute the following command in the directory of this project: 
+  - Execute the following command in the directory of this project:
     - `echo "#define SECRET_WIFI_SSID \"yourSSID\"\n#define SECRET_WIFI_PASSWORD \"yourWiFiPassword\"" > src/secrets.h`
   - Replace `yourSSID` and `yourWiFiPassword` with your WiFi credentials.
