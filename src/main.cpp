@@ -2,14 +2,19 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <ESP32Ping.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
 #include "secrets.h"
 
-const char* host = "timoknapp.com";
+#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+#define DHTPIN 4        // DHT 22 digital pin
 
-const int tempPin = 34; // the analog pin the TMP36's Vout (sense) pin is connected to
-int tempVal = 0;        // variable to store the value coming from the sensor
-float volts = 0.0;      // variable to store the voltage coming from the sensor
-float temp = 0.0;       // variable to store the temperature in celsius
+// Initialize DHT sensor.
+DHT dht(DHTPIN, DHTTYPE);
+
+const char* host = "timoknapp.com";
 
 static void pingHost(const char* host) {
   Serial.println("Pinging host " + String(host) + "...");
@@ -24,6 +29,8 @@ static void pingHost(const char* host) {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+
+  dht.begin();
 
   Serial.println();
   Serial.print("Connecting to WiFi");
@@ -43,15 +50,40 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  // read the temp sensor and store it in tempVal
-  tempVal = analogRead(tempPin);
-  // normalize by the maximum temperature raw reading range
-  volts = tempVal/1024.0;             
-  // calculate temperature celsius from voltage as per the equation found on the sensor spec sheet.
-  temp = (volts - 0.5) * 100;
 
-  Serial.println("Current time: " + String(__DATE__) + " " + String(__TIME__) + ", Temperature: " + String(temp) + " degrees C°");
+  // DHT22 sensor
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  float f = dht.readTemperature(true);
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t) || isnan(f)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+
+  // Compute heat index in Fahrenheit (the default)
+  float hif = dht.computeHeatIndex(f, h);
+  // Compute heat index in Celsius (isFahreheit = false)
+  float hic = dht.computeHeatIndex(t, h, false);
+
+  Serial.print(String(__TIMESTAMP__)+" - ");
+  Serial.print(F("Humidity: "));
+  Serial.print(h);
+  Serial.print(F("%, Temperature: "));
+  Serial.print(t);
+  Serial.print(F("°C "));
+  Serial.print("("+String(f));
+  Serial.print(F("°F), Heat index: "));
+  Serial.print(hic);
+  Serial.print(F("°C "));
+  Serial.print("("+String(hif));
+  Serial.println(F("°F)"));
+
   // wait for 30 seconds or 30000 milliseconds before taking the next reading.
-  delay(30000);    
-  // delay(30000);                  
+  delay(30000);
 }
