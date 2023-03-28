@@ -47,6 +47,15 @@
 // Additional sample headers
 #include "./iot_configs.h"
 
+// Sensor includes
+#include <Adafruit_Sensor.h>
+#include "DHT.h"
+
+// Sensor settings
+#define DHTTYPE DHT22
+uint8_t DHTPin = 4;
+DHT dht(DHTPin, DHTTYPE);
+
 // When developing for your own Arduino-based platform,
 // please follow the format '(ard;<platform>)'.
 #define AZURE_SDK_CLIENT_USER_AGENT "c%2F" AZ_SDK_VERSION_STRING "(ard;esp8266)"
@@ -84,7 +93,7 @@ static uint32_t telemetry_send_count = 0;
 
 static void connectToWiFi()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.println();
   Serial.print("Connecting to WIFI SSID ");
   Serial.println(ssid);
@@ -301,11 +310,24 @@ static void establishConnection()
   digitalWrite(LED_PIN, LOW);
 }
 
+static float getTemperature()
+{
+  return dht.readTemperature();
+}
+
+static float getHumidity()
+{
+  return dht.readHumidity();
+}
+
 static char *getTelemetryPayload()
 {
   az_span temp_span = az_span_create(telemetry_payload, sizeof(telemetry_payload));
-  temp_span = az_span_copy(temp_span, AZ_SPAN_FROM_STR("{ \"msgCount\": "));
-  (void)az_span_u32toa(temp_span, telemetry_send_count++, &temp_span);
+  temp_span = az_span_copy(temp_span, AZ_SPAN_FROM_STR("{ \"temperature\": "));
+  (void)az_span_u32toa(temp_span, getTemperature(), &temp_span);
+  temp_span = az_span_copy(temp_span, AZ_SPAN_FROM_STR(","));
+  temp_span = az_span_copy(temp_span, AZ_SPAN_FROM_STR("\"humidity\": "));
+  (void)az_span_u32toa(temp_span, getHumidity(), &temp_span);
   temp_span = az_span_copy(temp_span, AZ_SPAN_FROM_STR(" }"));
   temp_span = az_span_copy_u8(temp_span, '\0');
 
@@ -334,6 +356,8 @@ static void sendTelemetry()
 
 void setup()
 {
+  pinMode(DHTPin, INPUT);
+  dht.begin();
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
   establishConnection();
@@ -357,46 +381,3 @@ void loop()
   mqtt_client.loop();
   delay(500);
 }
-
-
-/**
-#include <ESP8266WiFi.h>
-#include <Adafruit_Sensor.h>
-#include "DHT.h"
-
-#define DHTTYPE DHT22
-#define WIFI_SSID ""
-#define WIFI_PSK ""
-
-uint8_t DHTPin = 4;
-DHT dht(DHTPin, DHTTYPE);
-
-float temperature;
-float humidity;
-
-void setup()
-{
-  Serial.begin(9600);
-  WiFi.begin(WIFI_SSID, WIFI_PSK);
-  Serial.print("Connecting to wifi");
-  Serial.println();
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(100);
-  }
-
-  pinMode(DHTPin, INPUT);
-  dht.begin();
-}
-
-void loop()
-{
-  temperature = dht.readTemperature();
-  humidity = dht.readHumidity();
-  Serial.println(temperature);
-  Serial.println(humidity);
-  delay(30000);
-}
-*/
