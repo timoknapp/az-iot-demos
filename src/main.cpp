@@ -346,8 +346,6 @@ static void getTelemetryPayload(az_span payload, az_span* out_payload)
 
   TemperatureData tempData = readTemperature();
 
-  Logger.Info("Temperature: " + String((int)tempData.temperatureC) + " °C (" + String((int)tempData.temperatureF) + " °F)" +  " Humidity: " + String((int)tempData.humidity) + " %");
-
   // payload = az_span_copy(payload, AZ_SPAN_FROM_STR("{ \"temperatureCelcius\": 25.5, \"temperatureFahrenheit\": 99.5, \"humidity\": 55.5 }"));
   // payload = az_span_copy_u8(payload, '\0');
 
@@ -438,7 +436,6 @@ void loop() {
   }
   else if (millis() > next_telemetry_send_time_ms)
   {
-    readTemperature();
     sendTelemetry();
     next_telemetry_send_time_ms = millis() + TELEMETRY_FREQUENCY_MILLISECS;
   }
